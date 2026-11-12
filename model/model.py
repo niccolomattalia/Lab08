@@ -25,7 +25,24 @@ class Model:
         :param mese: Mese selezionato (un intero da 1 a 12)
         :return: lista di tuple --> (nome del distributore, media), es. (Distributore A, 1.789)
         """
-        # TODO
+        listaTuple = []
+        for dis in self._distributori:
+            somma = 0
+            conta = 0
+            media = 0
+            for prez in dis.get_prezzi():
+                m = prez.data.month
+                if m == mese:
+                    somma += prez.prezzo_litro
+                    conta +=1
+            if conta == 0:
+                continue
+            else:
+                media = somma / conta
+                listaTuple.append((dis.nome, media))
+        return listaTuple
+
+
 
     def get_sequenza_ottima(self, mese:int):
         """
@@ -46,11 +63,71 @@ class Model:
 
     def __ricorsione(self, sequenza_parziale, giorno, ultimo_distributore, costo_corrente, prezzi_settimana):
         """ Implementa la ricorsione """
-        # TODO
+        if giorno > 7:
+            return sequenza_parziale
+        else:
+            if ultimo_distributore == 1:
+                costo1 = prezzi_settimana["id_distributore1"][giorno-1]*100
+                costo2 = 5 + prezzi_settimana["id_distributore2"][giorno-1]*100
+                if costo1 > costo2:
+                    costo_corrente += costo2
+                    sequenza_parziale.append(2)
+                    ultimo_distributore = 2
+                else:
+                    costo_corrente += costo1
+                    sequenza_parziale.append(1)
+                    ultimo_distributore = 1
+            elif ultimo_distributore == 2:
+                costo1 = 5 +prezzi_settimana["id_distributore1"][giorno-1]*100
+                costo2 = prezzi_settimana["id_distributore2"][giorno-1]*100
+                if costo1 > costo2:
+                    costo_corrente += costo2
+                    sequenza_parziale.append(2)
+                    ultimo_distributore = 2
+                else:
+                    costo_corrente += costo1
+                    sequenza_parziale.append(1)
+                    ultimo_distributore = 1
+            else:
+                costo1 = prezzi_settimana["id_distributore1"][giorno-1]*100
+                costo2 = prezzi_settimana["id_distributore2"][giorno-1]*100
+                if costo1 > costo2:
+                    costo_corrente += costo2
+                    sequenza_parziale.append(2)
+                    ultimo_distributore = 2
+                else:
+                    costo_corrente += costo1
+                    sequenza_parziale.append(1)
+                    ultimo_distributore = 1
+        giorno+=1
+        self.__ricorsione(sequenza_parziale, giorno, ultimo_distributore, costo_corrente, prezzi_settimana)
+
 
     def __get_prezzi_prima_settimana_mese(self, mese: int):
         """
         Restituisce i prezzi dei primi 7 giorni del mese selezionato per ciascun distributore.
         :return: un dizionario: {id_distributore: [prezzo_giorno1, ..., prezzo_giorno7]}
         """
-        # TODO
+        diz = {
+            "id_distributore1": [],
+            "id_distributore2": []
+        }
+        distrib = 0
+        for dis in self._distributori:
+            distrib +=1
+            lista_prezzi = dis.get_prezzi()
+            cont = 0
+            if distrib == 1:
+                for prez in lista_prezzi:
+                    if prez.data.month == mese:
+                        if cont < 7:
+                            diz["id_distributore1"].append(prez.prezzo_litro)
+                        cont += 1
+            elif distrib == 2:
+                for prez in lista_prezzi:
+                    if prez.data.month == mese:
+                        if cont < 7:
+                            diz["id_distributore2"].append(prez.prezzo_litro)
+                        cont += 1
+        return diz
+
