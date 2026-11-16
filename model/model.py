@@ -61,53 +61,31 @@ class Model:
         sequenza_nomi = [f"Giorno {giorno}: {id_to_nome[i]}" for giorno, i in enumerate(self.__sequenza_ottima, start=1)]
         return sequenza_nomi, round(self.__costo_ottimo, 2)
 
+
     def __ricorsione(self, sequenza_parziale, giorno, ultimo_distributore, costo_corrente, prezzi_settimana):
         """ Implementa la ricorsione """
+
         if giorno > 7:
-            self.__sequenza_ottima = sequenza_parziale
-            self.__costo_ottimo = costo_corrente
+            #se e' la prima combinazione (-1), salvo i valori in modo da usarli come punto di rif
+            #oppure se il costo corrente è minore di quello ottimo, entro così da poter rivalutare il minimo costo
+            if self.__costo_ottimo == -1 or costo_corrente < self.__costo_ottimo:
+                self.__costo_ottimo = costo_corrente
+                self.__sequenza_ottima = list(sequenza_parziale)
             return
-        else:
-            if ultimo_distributore == 1:
-                costo1 = prezzi_settimana["id_distributore1"][giorno-1]*100
-                costo2 = 5 + prezzi_settimana["id_distributore2"][giorno-1]*100
-                if costo1 > costo2:
-                    costo_corrente += costo2
-                    sequenza_parziale.append(2)
-                    ultimo_distributore = 2
-                else:
-                    costo_corrente += costo1
-                    sequenza_parziale.append(1)
-                    ultimo_distributore = 1
 
+        for id in prezzi_settimana:
+            #prendo valore del distributore nella chaive id, nella lista corrispondente al giorno voluto
+            costo = prezzi_settimana[id][giorno - 1] * 100
+            #fosse None vuol dire che siamo al primo giorno, non fa pagare lo spostamento
+            #entra se non siamo al primo giorno e il distributore di oggi e' diverso da quello di ieri
+            if ultimo_distributore is not None and id != ultimo_distributore:
+                costo += 5
 
-            elif ultimo_distributore == 2:
-                costo1 = 5 +prezzi_settimana["id_distributore1"][giorno-1]*100
-                costo2 = prezzi_settimana["id_distributore2"][giorno-1]*100
-                if costo1 > costo2:
-                    costo_corrente += costo2
-                    sequenza_parziale.append(2)
-                    ultimo_distributore = 2
-                else:
-                    costo_corrente += costo1
-                    sequenza_parziale.append(1)
-                    ultimo_distributore = 1
-
-
-            else:
-                costo1 = prezzi_settimana["id_distributore1"][giorno-1]*100
-                costo2 = prezzi_settimana["id_distributore2"][giorno-1]*100
-                if costo1 > costo2:
-                    costo_corrente += costo2
-                    sequenza_parziale.append(2)
-                    ultimo_distributore = 2
-                else:
-                    costo_corrente += costo1
-                    sequenza_parziale.append(1)
-                    ultimo_distributore = 1
-        giorno+=1
-        print(sequenza_parziale)
-        self.__ricorsione(sequenza_parziale, giorno, ultimo_distributore, costo_corrente, prezzi_settimana)
+            #aggiungo distributore scelto alla lista della settimana
+            sequenza_parziale.append(id)
+            self.__ricorsione(sequenza_parziale, giorno + 1, id, costo_corrente + costo, prezzi_settimana)
+            #dopo che la funzione ricorsiva ha finito, tolgo l'ultimo distributore appena inserito. In modo che la lista torna pulita e riparte dall'altro distributore
+            sequenza_parziale.pop()
 
 
     def __get_prezzi_prima_settimana_mese(self, mese: int):
@@ -115,26 +93,13 @@ class Model:
         Restituisce i prezzi dei primi 7 giorni del mese selezionato per ciascun distributore.
         :return: un dizionario: {id_distributore: [prezzo_giorno1, ..., prezzo_giorno7]}
         """
-        diz = {
-            "id_distributore1": [],
-            "id_distributore2": []
-        }
-        distrib = 0
+        diz = {}
         for dis in self._distributori:
-            distrib +=1
-            lista_prezzi = dis.get_prezzi()
-            cont = 0
-            if distrib == 1:
-                for prez in lista_prezzi:
-                    if prez.data.month == mese:
-                        if cont < 7:
-                            diz["id_distributore1"].append(prez.prezzo_litro)
-                        cont += 1
-            elif distrib == 2:
-                for prez in lista_prezzi:
-                    if prez.data.month == mese:
-                        if cont < 7:
-                            diz["id_distributore2"].append(prez.prezzo_litro)
-                        cont += 1
+            diz[dis.id] = []
+            for prez in dis.get_prezzi():
+                if prez.data.month == mese and prez.data.day >=1 and prez.data.day <=7:
+                    diz[dis.id].append(prez.prezzo_litro)
         return diz
+
+
 
